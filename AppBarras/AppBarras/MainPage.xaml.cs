@@ -1,0 +1,90 @@
+﻿using AppBarras.Hespers;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Xamarin.Forms;
+using ZXing.Net.Mobile.Forms;
+
+namespace AppBarras
+{
+    public partial class MainPage : ContentPage
+    {
+        public MainPage()
+        {
+            InitializeComponent();
+        }
+
+        private string titulo;
+
+        private string _codigocapturado;
+
+        public string CodigoCapturado
+        {
+            get { return _codigocapturado; }
+            set { _codigocapturado = value;
+
+                lblCodigo.Text = CodigoCapturado;
+            }
+        }
+
+        bool iniCapt = false;
+        bool exibindoMsg = false;
+
+        ZXingScannerPage scanPage = null;
+
+        public async Task Capturar()
+        {
+            scanPage = await Util.CapturarCodigoAsync(scanPage, "Escanear Codigo", ZXing.BarcodeFormat.EAN_13);// QR_CODE);
+
+            if (!iniCapt)
+            {
+                scanPage.OnScanResult += (resut) =>
+                {
+                    Device.BeginInvokeOnMainThread(async () =>
+                    {
+                        try
+                        {
+                            if (exibindoMsg)
+                            {
+                                return;
+                            }
+
+                            scanPage.IsScanning = false;
+
+                            if (!string.IsNullOrEmpty(CodigoCapturado))
+                            {
+                                return;
+                            }
+
+                            Util.Vibrar();
+
+                            CodigoCapturado = resut.Text;
+                            await Navigation.PopAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            exibindoMsg = true;
+                            await this.DisplayAlert("Atenção", "Codigo invalido tente novamente !", "ok");
+                            exibindoMsg = false;
+                        }
+
+                    });
+                };
+                iniCapt = true;
+            }
+            CodigoCapturado = "";
+            await Navigation.PushAsync(scanPage);
+        }
+
+        private async void Button_Clicked(object sender, EventArgs e)
+        {
+            await Capturar();
+        }
+        private void Button_Clicked_1(object sender, EventArgs e)
+        {
+            Navigation.PushAsync(new VerCodigo());
+        }
+    }
+}
